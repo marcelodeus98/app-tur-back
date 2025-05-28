@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int     @id @default(autoincrement())
+  full_name     String  @db.VarChar(255)
+  cpf           String?  @unique
+  rg            String?  @unique
+  cnh           String?  @unique
+  cnh_front_url String?  @unique
+  cnh_back_url  String?  @unique
+  plate         String?  @unique
+  plate_url     String?  @unique
+  contact       String? @unique
+  email         String  @unique
+  password      String  @db.VarChar(100)
+  is_active     Boolean @default(true)
+  status        StatusEnum @default(PENDING)
+  google_id     String?
+  auth_provider String?
+  roleId        Int
+  refreshToken  String?
+
+  role          Role     @relation(fields: [roleId], references: [id])
+
+  @@index([roleId])
+}
+
+
+model Role {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String  @db.VarChar(1000)
+  slug        String  @unique
+
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String  @db.VarChar(1000)
+  slug        String  @unique
+
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id           Int   @id @default(autoincrement())
+  permissionId Int
+  roleId       Int
+
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+enum StatusEnum {
+  PENDING
+  APPROVED
+  FAILED
+}
