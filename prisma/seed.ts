@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 
 async function seedMainDatabase() {
   // Permissions
-  await prisma.permission.createMany({
+  await prisma.permissions.createMany({
     data: [
       {
         name: 'Admin',
@@ -18,7 +18,7 @@ async function seedMainDatabase() {
   })
 
   // Roles
-  await prisma.role.createMany({
+  await prisma.roles.createMany({
     data: [
       {
         name: 'Admin',
@@ -39,14 +39,14 @@ async function seedMainDatabase() {
     skipDuplicates: true,
   })
 
-  const superAdmin = await prisma.role.findUnique({
+  const superAdmin = await prisma.roles.findUnique({
     where: { slug: 'admin' },
   })
 
-  const allPermissions = await prisma.permission.findMany()
+  const allPermissions = await prisma.permissions.findMany()
 
   if (superAdmin && allPermissions.length > 0) {
-    await prisma.rolePermission.createMany({
+    await prisma.rolePermissions.createMany({
       data: allPermissions.map((p) => ({
         roleId: superAdmin.id,
         permissionId: p.id,
@@ -63,21 +63,20 @@ async function seedMainDatabase() {
     throw new Error('EMAIL_ADMIN e PASSWORD_ADMIN precisam estar definidos no .env')
   }
 
-  const existingUser = await prisma.user.findUnique({
+  const existingUser = await prisma.users.findUnique({
     where: { email: adminEmail },
   })
 
   if (!existingUser && superAdmin) {
     const hashedPassword = await bcrypt.hash(adminPassword, 10)
 
-    await prisma.user.create({
+    await prisma.users.create({
       data: {
         full_name: 'Administrador',
         email: adminEmail,
         password: hashedPassword,
         roleId: superAdmin.id,
         is_active: true,
-        status: 'APPROVED',
       },
     })
 

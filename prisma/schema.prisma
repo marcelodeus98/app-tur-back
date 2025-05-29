@@ -7,65 +7,229 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            Int     @id @default(autoincrement())
-  full_name     String  @db.VarChar(255)
-  cpf           String?  @unique
-  rg            String?  @unique
-  cnh           String?  @unique
-  cnh_front_url String?  @unique
-  cnh_back_url  String?  @unique
-  plate         String?  @unique
-  plate_url     String?  @unique
-  contact       String? @unique
-  email         String  @unique
-  password      String  @db.VarChar(100)
-  is_active     Boolean @default(true)
-  status        StatusEnum @default(PENDING)
-  google_id     String?
-  auth_provider String?
-  roleId        Int
-  refreshToken  String?
+model Users {
+  id                    Int     @id @default(autoincrement())    
+  full_name              String  @db.VarChar(255)                 
+  cpf                   String?  @unique                         
+  rg                    String?  @unique                         
+  phone                 String? @unique                          
+  email                 String  @unique                          
+  password              String  @db.VarChar(100)
+  address_neighborhood  String? @db.VarChar(255)
+  address_street        String? @db.VarChar(255)
+  address_number        String? @db.VarChar(255)
+  address_complement    String? @db.VarChar(255)
+  address_city          String? @db.VarChar(255)
+  address_state         String? @db.VarChar(255)
+  is_active             Boolean @default(true)                                
+  google_id             String?                                  
+  auth_provider         String?                                  
+  roleId                Int                                      
+  refreshToken          String?                          
 
-  role          Role     @relation(fields: [roleId], references: [id])
+  drivers       Drivers[]
+  wallet_history WalletHistory[]
+  roles         Roles     @relation(fields: [roleId], references: [id])
+  trips         Trips[]
 
   @@index([roleId])
 }
 
-
-model Role {
+model Roles {
   id          Int     @id @default(autoincrement())
   name        String
   description String  @db.VarChar(1000)
   slug        String  @unique
 
-  users       User[]
-  permissions RolePermission[]
+  users       Users[]
+  permissions RolePermissions[]
 }
 
-model Permission {
+model Permissions {
   id          Int     @id @default(autoincrement())
   name        String
   description String  @db.VarChar(1000)
   slug        String  @unique
 
-  roles       RolePermission[]
+  roles       RolePermissions[]
 }
 
-model RolePermission {
+model RolePermissions {
   id           Int   @id @default(autoincrement())
   permissionId Int
   roleId       Int
 
-  role         Role       @relation(fields: [roleId], references: [id])
-  permission   Permission @relation(fields: [permissionId], references: [id])
+  role         Roles       @relation(fields: [roleId], references: [id])
+  permission   Permissions @relation(fields: [permissionId], references: [id])
 
   @@index([roleId])
   @@index([permissionId])
 }
 
+
+model Drivers {
+  id                  Int      @id @default(autoincrement())   
+  userId              Int                                      
+  number_cnh          String?  @unique                         
+  img_front_cnh_url   String?  @unique                         
+  img_back_cnh_url    String?  @unique                         
+  vehicle_id          Int?     
+  status              StatusEnum @default(PENDING)       
+
+  users               Users    @relation(fields: [userId], references: [id])
+  vehicle             Vehicles? @relation(fields: [vehicle_id], references: [id])
+  trips               Trips[]
+
+  @@index([userId])
+  @@index([vehicle_id])
+}
+
+model Vehicles {
+  id           Int     @id @default(autoincrement())
+  chassi       String?  @unique
+  plate        String?  @unique
+  brand        String?
+  model        String?
+  color        String?
+  year         Int?
+  number_seats Int?
+  
+  driver       Drivers[]
+}
+
+model Packages {
+  id                   Int     @id @default(autoincrement())
+  name                 String
+  description          String?  @db.VarChar(1000)
+  point_origin_id      Int
+  point_destination_id Int
+  duration             Float
+  distance             Float?
+  starting_point_id    Int
+  rate                 Float 
+  amount               Float
+  stops                String[] 
+  is_active            Boolean @default(true)
+  
+  origin_point         Points @relation("PackageOrigin", fields: [point_origin_id], references: [id])
+  destination_point    Points @relation("PackageDestination", fields: [point_destination_id], references: [id])
+  starting_point       StartingPoints @relation(fields: [starting_point_id], references: [id])
+  trips                Trips[]
+
+  @@index([point_origin_id])
+  @@index([point_destination_id])
+  @@index([starting_point_id])
+}
+
+model Points {
+  id          Int     @id @default(autoincrement())
+  name        String
+  img_url     String?
+  description String?  @db.VarChar(1000)
+  city        String
+  state       String
+  lat         Float
+  long        Float
+
+  origin_packages      Packages[] @relation("PackageOrigin")
+  destination_packages Packages[] @relation("PackageDestination")
+}
+
+model StartingPoints {
+  id          Int     @id @default(autoincrement())
+  name        String
+  img_url     String?
+  description String?  @db.VarChar(1000)
+  city        String
+  state       String
+  lat         Float
+  long        Float
+
+  packages    Packages[]
+}
+
+model Trips {
+  id          Int     @id @default(autoincrement())
+  client_id   Int
+  driver_id   Int
+  package_id  Int
+  status      StatusTripsEnum @default(PENDING)
+  payment_id  Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  payments Payments @relation(fields: [payment_id], references: [id])
+  package     Packages @relation(fields: [package_id], references: [id])
+  client      Users    @relation(fields: [client_id], references: [id])
+  driver      Drivers  @relation(fields: [driver_id], references: [id])
+
+  @@index([client_id])
+  @@index([driver_id])
+  @@index([package_id])
+  @@index([payment_id])
+}
+
+model Payments {
+  id                Int     @id @default(autoincrement())
+  payment_types_id  Int
+  status            StatusEnum @default(PENDING)
+  amount            Float
+  observation       String?  @db.VarChar(1000)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  payment_types     PaymentTypes @relation(fields: [payment_types_id], references: [id])
+  trips             Trips[]
+
+  @@index([payment_types_id])
+}
+
+model PaymentTypes {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?  @db.VarChar(1000)
+
+  payments Payments[]
+}
+
+model WalletHistory {
+  id          Int     @id @default(autoincrement())
+  user_id     Int
+  type        TypeEnum
+  amount      Float
+  wallet_id   Int
+  observation String?  @db.VarChar(1000)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       Users @relation(fields: [user_id], references: [id])
+  wallet      Wallet @relation(fields: [wallet_id], references: [id])
+
+  @@index([user_id])
+  @@index([wallet_id])
+}
+
+model Wallet {
+  id          Int     @id @default(autoincrement())
+  balance     Float
+
+  wallet_history WalletHistory[]
+}
+
 enum StatusEnum {
   PENDING
   APPROVED
-  FAILED
+  REJECTED
+}
+
+enum StatusTripsEnum {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum TypeEnum {
+  DEBIT
+  CREDIT
 }
