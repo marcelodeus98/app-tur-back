@@ -24,13 +24,14 @@ model Users {
   is_active             Boolean @default(true)                                
   google_id             String?                                  
   auth_provider         String?                                  
-  roleId                Int                                      
+  roleId                Int
+  walletId              Int?
   refreshToken          String?                          
 
   drivers       Drivers[]
-  wallet_history WalletHistory[]
-  roles         Roles     @relation(fields: [roleId], references: [id])
   trips         Trips[]
+  roles         Roles     @relation(fields: [roleId], references: [id])
+  wallet        Wallet?   @relation(fields: [walletId], references: [id])
 
   @@index([roleId])
 }
@@ -158,6 +159,7 @@ model Trips {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  wallet_history WalletHistory[]
   payments Payments @relation(fields: [payment_id], references: [id])
   package     Packages @relation(fields: [package_id], references: [id])
   client      Users    @relation(fields: [client_id], references: [id])
@@ -192,28 +194,28 @@ model PaymentTypes {
   payments Payments[]
 }
 
-model WalletHistory {
-  id          Int     @id @default(autoincrement())
-  user_id     Int
-  type        TypeEnum
-  amount      Float
-  wallet_id   Int
-  observation String?  @db.VarChar(1000)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  users       Users @relation(fields: [user_id], references: [id])
-  wallet      Wallet @relation(fields: [wallet_id], references: [id])
-
-  @@index([user_id])
-  @@index([wallet_id])
-}
-
 model Wallet {
   id          Int     @id @default(autoincrement())
   balance     Float
 
+  users       Users[]
   wallet_history WalletHistory[]
+}
+
+model WalletHistory {
+  id          Int     @id @default(autoincrement())
+  type        TypeEnum
+  amount      Float
+  wallet_id   Int
+  trip_id     Int
+  observation String?  @db.VarChar(1000)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wallet      Wallet @relation(fields: [wallet_id], references: [id])
+  trip        Trips  @relation(fields: [trip_id], references: [id])
+  @@index([trip_id])
+  @@index([wallet_id])  
 }
 
 enum StatusEnum {
