@@ -1,7 +1,7 @@
 // src/auth/auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
+import { Users } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UserService } from 'src/user/user.service';
 
@@ -20,7 +20,7 @@ export class AuthService {
     throw new UnauthorizedException('Invalid credentials');
   }
 
-  async login(user: User) {
+  async login(user: Users) {
     const errorMessages: string[] = [];
 
     const payload = { sub: user.id, email: user.email };

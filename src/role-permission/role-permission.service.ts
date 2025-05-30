@@ -7,11 +7,11 @@ export class RolePermissionService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateRolePermissionDto) {
-    return this.prisma.rolePermission.create({ data });
+    return this.prisma.rolePermissions.create({ data });
   }
 
   async findAll() {
-    return this.prisma.rolePermission.findMany({
+    return this.prisma.rolePermissions.findMany({
       include: {
         role: true,
         permission: true,
@@ -20,6 +20,6 @@ export class RolePermissionService {
   }
 
   async remove(id: number) {
-    return this.prisma.rolePermission.delete({ where: { id } });
+    return this.prisma.rolePermissions.delete({ where: { id } });
   }
 }

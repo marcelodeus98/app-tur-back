@@ -7,18 +7,18 @@ export class PermissionService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreatePermissionDto) {
-    return this.prisma.permission.create({ data });
+    return this.prisma.permissions.create({ data });
   }
 
   async findAll() {
-    return this.prisma.permission.findMany();
+    return this.prisma.permissions.findMany();
   }
 
   async findOne(id: number) {
-    return this.prisma.permission.findUnique({ where: { id } });
+    return this.prisma.permissions.findUnique({ where: { id } });
   }
 
   async remove(id: number) {
-    return this.prisma.permission.delete({ where: { id } });
+    return this.prisma.permissions.delete({ where: { id } });
   }
 }
