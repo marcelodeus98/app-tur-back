@@ -86,14 +86,15 @@ model Drivers {
 }
 
 model Vehicles {
-  id           Int     @id @default(autoincrement())
-  chassi       String?  @unique
-  plate        String?  @unique
-  brand        String?
-  model        String?
-  color        String?
-  year         Int?
-  number_seats Int?
+  id            Int     @id @default(autoincrement())
+  chassi        String?  @unique
+  plate         String?  @unique
+  img_plate_url String?
+  brand         String?
+  model         String?
+  color         String?
+  year          Int?
+  number_seats  Int?
   
   driver       Drivers[]
 }
