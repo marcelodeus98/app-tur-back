@@ -19,8 +19,8 @@ export class CreateClientDto {
 
   @ApiProperty({ example: '(11) 91234-5678', required: false })
   @IsOptional()
-  @IsString({ message: 'O contato deve ser uma string.' })
-  contact?: string;
+  @IsString({ message: 'O telefone deve ser uma string.' })
+  phone?: string;
 
   @ApiProperty({ example: 'google-id-123', required: false })
   @IsOptional()

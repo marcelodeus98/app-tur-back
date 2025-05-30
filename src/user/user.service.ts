@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -15,48 +15,107 @@ export class UserService {
   ) { }
 
   async create(data: CreateClientDto | CreateDriverDto) {
-    if (data.roleId === 2) {
-      return this.prisma.user.create({
-        data: {
-          full_name: data.full_name,
-          email: data.email,
-          password: data.password,
-          contact: data.contact,
-          google_id: data.google_id,
-          auth_provider: data.auth_provider,
-          roleId: data.roleId,
-        },
+    try {
+      const validationErrors = await this.validateUniqueFields({
+        email: data.email,
+        cpf: (data as CreateDriverDto).cpf,
+        phone: data.phone,
+        number_cnh: (data as CreateDriverDto).number_cnh,
+        plate: (data as CreateDriverDto).plate,
       });
-    } else if (data.roleId === 3) {
-      const driverData = data as CreateDriverDto;
-      return this.prisma.user.create({
-        data: {
-          full_name: driverData.full_name,
-          email: driverData.email,
-          password: driverData.password,
-          contact: driverData.contact,
-          google_id: driverData.google_id,
-          auth_provider: driverData.auth_provider,
-          cpf: driverData.cpf,
-          rg: driverData.rg,
-          cnh: driverData.cnh,
-          cnh_front_url: driverData.cnh_front_url,
-          cnh_back_url: driverData.cnh_back_url,
-          plate: driverData.plate,
-          plate_url: driverData.plate_url,
-          roleId: driverData.roleId,
-        },
+  
+      if (validationErrors.length > 0) {
+        return {
+          data: null,
+          errorMessages: validationErrors,
+        };
+      }
+  
+      const hashedPassword = await bcrypt.hash(data.password, 10);
+  
+      const result = await this.prisma.$transaction(async (prisma) => {
+        const wallet = await prisma.wallet.create({
+          data: {
+            balance: 0,
+          },
+        });
+  
+        const { number_cnh, img_front_cnh_url, img_back_cnh_url, plate, img_plate_url, ...userData } = data as CreateDriverDto;
+  
+        const user = await prisma.users.create({
+          data: {
+            ...userData,
+            password: hashedPassword,
+            walletId: wallet.id,
+          },
+        });
+  
+        if (user.roleId === 3) {
+          const driverData = data as CreateDriverDto;
+  
+          let vehicleId: number | null = null;
+          if (driverData.plate || driverData.img_plate_url) {
+            const vehicle = await prisma.vehicles.create({
+              data: {
+                plate: driverData.plate,
+                img_plate_url: driverData.img_plate_url,
+              },
+            });
+            vehicleId = vehicle.id;
+          }
+  
+          const driver = await prisma.drivers.create({
+            data: {
+              userId: user.id,
+              number_cnh: driverData.number_cnh,
+              img_front_cnh_url: driverData.img_front_cnh_url,
+              img_back_cnh_url: driverData.img_back_cnh_url,
+              vehicle_id: vehicleId,
+              status: 'PENDING',
+            },
+          });
+  
+          return {
+            message: 'Motorista criado com sucesso',
+            user,
+            wallet,
+            driver,
+          };
+        }
+  
+        return {
+          message: 'Cliente criado com sucesso',
+          user,
+          wallet,
+        };
       });
+  
+      return {
+        data: result,
+        errorMessages: [],
+      };
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      return {
+        data: null,
+        errorMessages: [error.message],
+      };
     }
-    throw new Error('Invalid roleId');
   }
 
   async findAll() {
-    const errorMessages: string[] = [];
-
-    const users = await this.prisma.user.findMany();
-
-    return { data: users, errorMessages }
+    try {
+      const users = await this.prisma.users.findMany();
+      return {
+        data: users,
+        errorMessages: [],
+      };
+    } catch (error) {
+      return {
+        data: null,
+        errorMessages: [error.message],
+      };
+    }
   }
 
   async findOne(id: number) {
@@ -72,7 +131,7 @@ export class UserService {
       })
     }
 
-    const user = await this.prisma.user.findUnique({ 
+    const user = await this.prisma.users.findUnique({ 
       where: { id },
      });
 
@@ -92,7 +151,7 @@ export class UserService {
       })
     }
 
-     const user = await this.prisma.user.findUnique({ 
+     const user = await this.prisma.users.findUnique({ 
       where: { id },
       select:{
         id: true,
@@ -117,7 +176,7 @@ export class UserService {
       })
     }
 
-    const user = await this.prisma.user.update({ where: { id }, data });
+    const user = await this.prisma.users.update({ where: { id }, data });
 
     return { data: user, errorMessages }
   }
@@ -126,8 +185,7 @@ export class UserService {
     const errorMessages: string[] = [];
 
     const userExists = await this.userValidation.validateUserExistsById(id);
-    if (userExists) errorMessages.push(userExists.message);
-
+    
     if (errorMessages.length > 0) {
       throw new NotFoundException({
         data: null,
@@ -135,23 +193,73 @@ export class UserService {
       })
     }
 
-    const user = await this.prisma.user.delete({ where: { id } });
+    const user = await this.prisma.users.delete({ where: { id } });
 
     return { data: user, errorMessages }
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.users.findUnique({ where: { email } });
   }
 
   async updateRefreshToken(id: number, refreshToken: string | null) {
-    return this.prisma.user.update({
+    return this.prisma.users.update({
       where: { id },
       data: { refreshToken },
     });
   }
 
   async findOneForAuth(id: number) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.users.findUnique({ where: { id } });
+  }
+
+  async validateUniqueFields(data: { email?: string; cpf?: string; phone?: string; number_cnh?: string; plate?: string }) {
+    const errorMessages: string[] = [];
+
+    if (data.email) {
+      try {
+        await this.userValidation.validateUserExistsByEmail(data.email);
+        errorMessages.push('Este e-mail já está em uso.');
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    if (data.cpf) {
+      try {
+        const user = await this.prisma.users.findUnique({
+          where: { cpf: data.cpf },
+        });
+        if (user) {
+          errorMessages.push('Este CPF já está cadastrado.');
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    if (data.phone) {
+      try {
+        const user = await this.prisma.users.findUnique({
+          where: { phone: data.phone },
+        });
+        if (user) {
+          errorMessages.push('Este telefone já está cadastrado.');
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    if (data.number_cnh) {
+      const user = await this.userValidation.validateExistsCNH(data.number_cnh);
+      if (user) errorMessages.push('Esta CNH já está cadastrada.');
+    }
+
+    if (data.plate) {
+      const vehicle = await this.userValidation.validateExistsPlate(data.plate);
+      if (vehicle) errorMessages.push('Esta placa já está cadastrada.');
+    }
+    return errorMessages;
   }
 }

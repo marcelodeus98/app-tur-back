@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from "src/prisma/prisma.service";
 import { CreateUserDto } from "../dto/create-user.dto";
 import { UpdateUserDto } from "../dto/update-user.dto";
@@ -9,7 +9,7 @@ export class UserValidationService {
   constructor(private prisma: PrismaService) {}
 
   async validateExistsCPF(data: CreateUserDto | UpdateUserDto): Promise<{ error: string; cpf: string } | null> {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.users.findFirst({
       where: {
         cpf: data.cpf
       }
@@ -17,50 +17,55 @@ export class UserValidationService {
     
     return user ? { error: 'CPF já registrado.', cpf: user.cpf || '' } : null;
   }
-  
-  async validateExistsEmail(data: CreateUserDto | UpdateUserDto): Promise<{ error: string; email: string } | null> {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        email: data.email
-      }
-    })
-    
-    return user ? { error: 'Email já registrado.', email: user.email } : null;
-  }
 
   async validateExistsPhone(data: CreateUserDto | UpdateUserDto): Promise<{ error: string; phone?: string } | null> {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.users.findFirst({
       where: {
-        contact: data.phone
+        phone: data.phone
       }
     })
     
-    return user ? { error: 'Celular já registrado.', phone: user.contact || undefined } : null;
+    return user ? { error: 'Celular já registrado.', phone: user.phone|| undefined } : null;
   }
 
-   async validateUserExistsById(id: number): Promise<NoFoundItem | null> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+  async validateUserExistsById(id: number): Promise<{ message: string } | null> {
+    const user = await this.prisma.users.findUnique({ where: { id } });
+    if (!user) {
+      return { message: 'Usuário não encontrado' };
+    }
+    return null;
+  }
+  
+  async validateUserExistsByEmail(email: string) {
+    const user = await this.prisma.users.findUnique({ where: { email } });
 
-    return user ? null : new NoFoundItem('Usuário');
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    return user;
   }
 
-   async validateUserExistsByEmail(email: string): Promise<NoFoundItem | null> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+  async validateExistsCNH(cnh: string) {
+    const user = await this.prisma.drivers.findFirst({
+      where: {
+        number_cnh: cnh
+      }
+    })
 
-    return user ? null : new NoFoundItem('Usuário');
+    return user ? { error: 'CNH já registrada.', cnh: user.number_cnh || '' } : null;
   }
 
-  async validateCpfExists(cpf: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { cpf }
+  async validateExistsPlate(plate: string) {
+    console.log(plate);
+    const vehicle = await this.prisma.vehicles.findUnique({
+      where: { plate },
     });
-    return user ? { error: 'CPF já registrado.', cpf: user.cpf || '' } : null;
-  }
-
-  async validateContactExists(contact: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { contact }
-    });
-    return user ? { error: 'Contato já registrado.', contact: user.contact || '' } : null;
+    
+    if (vehicle) {
+      return { error: 'Esta placa já está cadastrada.' };
+    }
+    
+    return null;
   }
 }
