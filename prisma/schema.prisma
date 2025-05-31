@@ -73,16 +73,14 @@ model Drivers {
   userId              Int                                      
   number_cnh          String?  @unique                         
   img_front_cnh_url   String?  @unique                         
-  img_back_cnh_url    String?  @unique                         
-  vehicle_id          Int?     
+  img_back_cnh_url    String?  @unique                            
   status              StatusEnum @default(PENDING)       
 
   users               Users    @relation(fields: [userId], references: [id])
-  vehicle             Vehicles? @relation(fields: [vehicle_id], references: [id])
   trips               Trips[]
+  driver_vehicles    DriverVehicles[]
 
   @@index([userId])
-  @@index([vehicle_id])
 }
 
 model Vehicles {
@@ -95,8 +93,20 @@ model Vehicles {
   color         String?
   year          Int?
   number_seats  Int?
-  
-  driver       Drivers[]
+
+  driver_vehicles    DriverVehicles[]
+}
+
+model DriverVehicles {
+  id            Int     @id @default(autoincrement())
+  driver_id     Int
+  vehicle_id    Int
+
+  driver        Drivers @relation(fields: [driver_id], references: [id])
+  vehicle       Vehicles @relation(fields: [vehicle_id], references: [id])
+
+  @@index([driver_id])
+  @@index([vehicle_id])
 }
 
 model Packages {
