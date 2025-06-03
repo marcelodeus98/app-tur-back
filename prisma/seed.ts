@@ -39,6 +39,83 @@ async function seedMainDatabase() {
     skipDuplicates: true,
   })
 
+  // Points
+  await prisma.points.createMany({
+    data: [
+      {
+        name: 'Praia de Barra Nova',
+        city: 'Cascavel',
+        state: 'CE',
+        lat: -4.1333,
+        long: -38.2333,
+      },
+      {
+        name: 'Lagoa do Banana',
+        city: 'Cascavel',
+        state: 'CE',
+        lat: -4.1408,
+        long: -38.2419,
+      },
+      {
+        name: 'Praia do Balbino',
+        city: 'Cascavel',
+        state: 'CE',
+        lat: -4.1286,
+        long: -38.2258,
+      },
+      {
+        name: 'Praia de Caponga',
+        city: 'Cascavel',
+        state: 'CE',
+        lat: -4.1667,
+        long: -38.2500,
+      },
+      {
+        name: 'Praia do Batoque',
+        city: 'Aquiraz',
+        state: 'CE',
+        lat: -3.9019,
+        long: -38.3861,
+      },
+      {
+        name: 'Praia do Presídio',
+        city: 'Aquiraz',
+        state: 'CE',
+        lat: -3.9167,
+        long: -38.3667,
+      },
+      {
+        name: 'Prainha',
+        city: 'Beberibe',
+        state: 'CE',
+        lat: -4.4500,
+        long: -38.0667,
+      },
+      {
+        name: 'Praia das Fontes',
+        city: 'Beberibe',
+        state: 'CE',
+        lat: -4.4333,
+        long: -38.0500,
+      },
+      {
+        name: 'Morro Branco',
+        city: 'Beberibe',
+        state: 'CE',
+        lat: -4.4167,
+        long: -38.0333,
+      },
+      {
+        name: 'Praia do Uruaú',
+        city: 'Beberibe',
+        state: 'CE',
+        lat: -4.3667,
+        long: -38.0167,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
   const superAdmin = await prisma.roles.findUnique({
     where: { slug: 'admin' },
   })

@@ -33,67 +33,24 @@ export class UserService {
   
       const hashedPassword = await bcrypt.hash(data.password, 10);
   
-      const result = await this.prisma.$transaction(async (prisma) => {
-        const wallet = await prisma.wallet.create({
-          data: {
-            balance: 0,
-          },
-        });
+      return await this.prisma.$transaction(async (prisma) => {
+        const wallet = await this.createWallet(prisma);
   
-        const { number_cnh, img_front_cnh_url, img_back_cnh_url, plate, img_plate_url, ...userData } = data as CreateDriverDto;
-  
-        const user = await prisma.users.create({
-          data: {
-            ...userData,
-            password: hashedPassword,
-            walletId: wallet.id,
-          },
-        });
+        const user = await this.createUser(prisma, data, hashedPassword, wallet.id);
   
         if (user.roleId === 3) {
-          const driverData = data as CreateDriverDto;
-  
-          let vehicleId: number | null = null;
-          if (driverData.plate || driverData.img_plate_url) {
-            const vehicle = await prisma.vehicles.create({
-              data: {
-                plate: driverData.plate,
-                img_plate_url: driverData.img_plate_url,
-              },
-            });
-            vehicleId = vehicle.id;
-          }
-  
-          const driver = await prisma.drivers.create({
-            data: {
-              userId: user.id,
-              number_cnh: driverData.number_cnh,
-              img_front_cnh_url: driverData.img_front_cnh_url,
-              img_back_cnh_url: driverData.img_back_cnh_url,
-              vehicle_id: vehicleId,
-              status: 'PENDING',
-            },
-          });
-  
-          return {
-            message: 'Motorista criado com sucesso',
-            user,
-            wallet,
-            driver,
-          };
+          return await this.createDriverData(prisma, data as CreateDriverDto, user.id);
         }
   
         return {
-          message: 'Cliente criado com sucesso',
-          user,
-          wallet,
+          data: {
+            message: 'Cliente criado com sucesso',
+            user,
+            wallet,
+          },
+          errorMessages: [],
         };
       });
-  
-      return {
-        data: result,
-        errorMessages: [],
-      };
     } catch (error) {
       console.error('Erro ao criar usuário:', error);
       return {
@@ -101,6 +58,67 @@ export class UserService {
         errorMessages: [error.message],
       };
     }
+  }
+
+  private async createWallet(prisma: any) {
+    return prisma.wallet.create({
+      data: { balance: 0 },
+    });
+  }
+
+  private async createUser(prisma: any, data: CreateClientDto | CreateDriverDto, hashedPassword: string, walletId: number) {
+    const { number_cnh, img_front_cnh_url, img_back_cnh_url, plate, img_plate_url, ...userData } = data as CreateDriverDto;
+    
+    return prisma.users.create({
+      data: {
+        ...userData,
+        password: hashedPassword,
+        walletId,
+      },
+    });
+  }
+
+  private async createDriverData(prisma: any, driverData: CreateDriverDto, userId: number) {
+    const vehicleId = await this.createVehicleIfNeeded(prisma, driverData);
+
+    const driver = await prisma.drivers.create({
+      data: {
+        userId,
+        number_cnh: driverData.number_cnh,
+        img_front_cnh_url: driverData.img_front_cnh_url,
+        img_back_cnh_url: driverData.img_back_cnh_url,
+        status: 'PENDING',
+      },
+    });
+
+    if (vehicleId) {
+      await prisma.driverVehicles.create({
+        data: {
+          driver_id: driver.id,
+          vehicle_id: vehicleId,
+        },
+      });
+    }
+
+    return {
+      message: 'Motorista criado com sucesso',
+      user: await prisma.users.findUnique({ where: { id: userId } }),
+      wallet: await prisma.wallet.findFirst({ where: { users: { some: { id: userId } } } }),
+      driver,
+    };
+  }
+
+  private async createVehicleIfNeeded(prisma: any, driverData: CreateDriverDto) {
+    if (!driverData.plate && !driverData.img_plate_url) return null;
+
+    const vehicle = await prisma.vehicles.create({
+      data: {
+        plate: driverData.plate,
+        img_plate_url: driverData.img_plate_url,
+      },
+    });
+
+    return vehicle.id;
   }
 
   async findAll() {
@@ -217,49 +235,50 @@ export class UserService {
     const errorMessages: string[] = [];
 
     if (data.email) {
-      try {
-        await this.userValidation.validateUserExistsByEmail(data.email);
+      const existingUser = await this.prisma.users.findUnique({
+        where: { email: data.email },
+      });
+      if (existingUser) {
         errorMessages.push('Este e-mail já está em uso.');
-      } catch (error) {
-        console.log(error);
       }
     }
 
     if (data.cpf) {
-      try {
-        const user = await this.prisma.users.findUnique({
-          where: { cpf: data.cpf },
-        });
-        if (user) {
-          errorMessages.push('Este CPF já está cadastrado.');
-        }
-      } catch (error) {
-        console.log(error);
+      const existingUser = await this.prisma.users.findUnique({
+        where: { cpf: data.cpf },
+      });
+      if (existingUser) {
+        errorMessages.push('Este CPF já está cadastrado.');
       }
     }
 
     if (data.phone) {
-      try {
-        const user = await this.prisma.users.findUnique({
-          where: { phone: data.phone },
-        });
-        if (user) {
-          errorMessages.push('Este telefone já está cadastrado.');
-        }
-      } catch (error) {
-        console.log(error);
+      const existingUser = await this.prisma.users.findUnique({
+        where: { phone: data.phone },
+      });
+      if (existingUser) {
+        errorMessages.push('Este telefone já está cadastrado.');
       }
     }
 
     if (data.number_cnh) {
-      const user = await this.userValidation.validateExistsCNH(data.number_cnh);
-      if (user) errorMessages.push('Esta CNH já está cadastrada.');
+      const existingDriver = await this.prisma.drivers.findUnique({
+        where: { number_cnh: data.number_cnh },
+      });
+      if (existingDriver) {
+        errorMessages.push('Esta CNH já está cadastrada.');
+      }
     }
 
     if (data.plate) {
-      const vehicle = await this.userValidation.validateExistsPlate(data.plate);
-      if (vehicle) errorMessages.push('Esta placa já está cadastrada.');
+      const existingVehicle = await this.prisma.vehicles.findUnique({
+        where: { plate: data.plate },
+      });
+      if (existingVehicle) {
+        errorMessages.push('Esta placa já está cadastrada.');
+      }
     }
+
     return errorMessages;
   }
 }

@@ -67,22 +67,20 @@ model RolePermissions {
   @@index([permissionId])
 }
 
-
 model Drivers {
   id                  Int      @id @default(autoincrement())   
   userId              Int                                      
   number_cnh          String?  @unique                         
   img_front_cnh_url   String?  @unique                         
-  img_back_cnh_url    String?  @unique                         
-  vehicle_id          Int?     
-  status              StatusEnum @default(PENDING)       
+  img_back_cnh_url    String?  @unique                            
+  status              StatusEnum @default(APPROVED)    
+  operation_hours     Json?   
 
   users               Users    @relation(fields: [userId], references: [id])
-  vehicle             Vehicles? @relation(fields: [vehicle_id], references: [id])
   trips               Trips[]
-
+  driver_vehicles     DriverVehicles[]
+  packages            Packages[]
   @@index([userId])
-  @@index([vehicle_id])
 }
 
 model Vehicles {
@@ -95,32 +93,45 @@ model Vehicles {
   color         String?
   year          Int?
   number_seats  Int?
-  
-  driver       Drivers[]
+
+  driver_vehicles    DriverVehicles[]
+}
+
+model DriverVehicles {
+  id            Int     @id @default(autoincrement())
+  driver_id     Int
+  vehicle_id    Int
+
+  driver        Drivers @relation(fields: [driver_id], references: [id])
+  vehicle       Vehicles @relation(fields: [vehicle_id], references: [id])
+
+  @@index([driver_id])
+  @@index([vehicle_id])
 }
 
 model Packages {
   id                   Int     @id @default(autoincrement())
+  driver_id            Int
   name                 String
   description          String?  @db.VarChar(1000)
   point_origin_id      Int
   point_destination_id Int
+  starting_point       String?
   duration             Float
   distance             Float?
-  starting_point_id    Int
   rate                 Float 
   amount               Float
   stops                String[] 
   is_active            Boolean @default(true)
   
+  driver               Drivers @relation(fields: [driver_id], references: [id])
   origin_point         Points @relation("PackageOrigin", fields: [point_origin_id], references: [id])
   destination_point    Points @relation("PackageDestination", fields: [point_destination_id], references: [id])
-  starting_point       StartingPoints @relation(fields: [starting_point_id], references: [id])
   trips                Trips[]
 
   @@index([point_origin_id])
   @@index([point_destination_id])
-  @@index([starting_point_id])
+  @@index([driver_id])
 }
 
 model Points {
@@ -146,8 +157,6 @@ model StartingPoints {
   state       String
   lat         Float
   long        Float
-
-  packages    Packages[]
 }
 
 model Trips {
