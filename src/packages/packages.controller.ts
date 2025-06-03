@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
+import { FindPackagesDto } from './dto/find-packages.dto';
 
 @Controller('packages')
 export class PackagesController {
@@ -13,8 +14,8 @@ export class PackagesController {
   }
 
   @Get()
-  findAll() {
-    return this.packagesService.findAll();
+  findAll(@Query() filters: FindPackagesDto) {
+    return this.packagesService.findAll(filters);
   }
 
   @Get(':id')
