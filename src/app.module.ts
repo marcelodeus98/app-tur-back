@@ -13,7 +13,7 @@ import { StartingPointsModule } from './starting-points/starting-points.module';
 import { OperationHoursModule } from './operation-hours/operation-hours.module';
 
 @Module({
-  imports: [PrismaModule, UserModule, RoleModule, PermissionModule, RolePermissionModule, AuthModule, PackagesModule, PointsModule, StartingPointsModule, OperationHoursModule],
+  imports: [PrismaModule, AuthModule, UserModule, RoleModule, PermissionModule, RolePermissionModule, PackagesModule, PointsModule, StartingPointsModule, OperationHoursModule],
   controllers: [AppController],
   providers: [AppService],
 })
