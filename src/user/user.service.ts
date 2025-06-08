@@ -227,6 +227,14 @@ export class UserService {
     });
   }
 
+  async findOneByRefreshToken(refreshToken: string) {
+  return this.prisma.users.findFirst({ 
+    where: { 
+      refreshToken 
+    } 
+  });
+}
+
   async findOneForAuth(id: number) {
     return this.prisma.users.findUnique({ where: { id } });
   }

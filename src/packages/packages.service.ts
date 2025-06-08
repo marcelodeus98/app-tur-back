@@ -72,7 +72,47 @@ export class PackagesService {
   }
 
   async findOne(id: number) {
-    const getPackage = await this.prisma.packages.findUnique({ where: { id } });
+    const getPackage = await this.prisma.packages.findUnique({
+     where: { id },
+     select: {
+       id: true,
+       origin_point: {
+        select: {
+          id: true,
+          name: true,
+          description: true 
+        }
+       },
+       starting_point: true,
+       stops: true,
+       destination_point: {
+        select: {
+          id: true,
+          name: true
+        }
+       },
+       driver: {
+         select: {
+           id: true,
+           users: {
+             select: {
+               full_name: true,
+             }
+           }
+         }
+       },
+       vehicle: {
+         select: {
+           id: true,
+           model: true,
+           brand: true,
+           color: true,
+           number_seats: true
+         }
+       }
+     }
+    });
+
     return {
       data: {
         message: 'Pacote encontrado com sucesso',

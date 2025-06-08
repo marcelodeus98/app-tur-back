@@ -33,10 +33,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Refresh token successful' })
   @ApiBadRequestResponse({ description: 'Invalid refresh token' })
   @Post('revalidate')
-  async revalidate(@Req() req) {
-    return this.authService.refreshToken(
-      req.user.sub,
-      req.body.refreshToken
-    );
+  async revalidate(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshToken(body.refreshToken);
   }
 }

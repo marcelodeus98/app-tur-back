@@ -36,22 +36,23 @@ export class AuthService {
     return { data: { accessToken, refreshToken }, errorMessages };
   }
 
-  async refreshToken(userId: number, refreshToken: string) {
+  async refreshToken(refreshToken: string) {
     const errorMessages: string[] = [];
-    const user = await this.usersService.findOneForAuth(userId);
 
-    if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
+    const user = await this.usersService.findOneByRefreshToken(refreshToken);
+
+    if (!user) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
     const payload = { sub: user.id, email: user.email };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const newAccessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
 
-    return { 
-      data: { 
-        accessToken,
-      }, 
-      errorMessages 
+    return {
+      data: {
+        accessToken: newAccessToken,
+      },
+      errorMessages
     };
   }
 
@@ -59,6 +60,6 @@ export class AuthService {
     const errorMessages: string[] = [];
     const user = this.usersService.updateRefreshToken(userId, null);
 
-    return { data: user, errorMessages}
+    return { data: user, errorMessages }
   }
 }

@@ -95,6 +95,7 @@ model Vehicles {
   number_seats  Int?
 
   driver_vehicles    DriverVehicles[]
+  packages           Packages[]
 }
 
 model DriverVehicles {
@@ -112,6 +113,7 @@ model DriverVehicles {
 model Packages {
   id                   Int     @id @default(autoincrement())
   driver_id            Int
+  vehicle_id           Int?
   name                 String
   description          String?  @db.VarChar(1000)
   point_origin_id      Int
@@ -125,6 +127,7 @@ model Packages {
   is_active            Boolean @default(true)
   
   driver               Drivers @relation(fields: [driver_id], references: [id])
+  vehicle              Vehicles? @relation(fields: [vehicle_id], references: [id])
   origin_point         Points @relation("PackageOrigin", fields: [point_origin_id], references: [id])
   destination_point    Points @relation("PackageDestination", fields: [point_destination_id], references: [id])
   trips                Trips[]
