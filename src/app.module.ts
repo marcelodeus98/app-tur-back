@@ -12,9 +12,10 @@ import { PointsModule } from './points/points.module';
 import { StartingPointsModule } from './starting-points/starting-points.module';
 import { OperationHoursModule } from './operation-hours/operation-hours.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
+import { TripsModule } from './trips/trips.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, RoleModule, PermissionModule, RolePermissionModule, PackagesModule, PointsModule, StartingPointsModule, OperationHoursModule, VehiclesModule],
+  imports: [PrismaModule, AuthModule, UserModule, RoleModule, PermissionModule, RolePermissionModule, PackagesModule, PointsModule, StartingPointsModule, OperationHoursModule, VehiclesModule, TripsModule],
   controllers: [AppController],
   providers: [AppService],
 })

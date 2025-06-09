@@ -30,10 +30,12 @@ model Users {
 
   drivers       Drivers[]
   trips         Trips[]
+  payments      Payments[]
   roles         Roles     @relation(fields: [roleId], references: [id])
   wallet        Wallet?   @relation(fields: [walletId], references: [id])
 
   @@index([roleId])
+  @@index([email])
 }
 
 model Roles {
@@ -123,7 +125,8 @@ model Packages {
   distance             Float?
   rate                 Float 
   amount               Float
-  stops                String[] 
+  stops                String[]
+  available_seats      Int?
   is_active            Boolean @default(true)
   
   driver               Drivers @relation(fields: [driver_id], references: [id])
@@ -163,14 +166,16 @@ model StartingPoints {
 }
 
 model Trips {
-  id          Int     @id @default(autoincrement())
-  client_id   Int
-  driver_id   Int
-  package_id  Int
-  status      StatusTripsEnum @default(PENDING)
-  payment_id  Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int     @id @default(autoincrement())
+  client_id     Int
+  driver_id     Int
+  package_id    Int
+  status        StatusTripsEnum @default(PENDING)
+  payment_id    Int
+  seats_booked  Int
+  schedule_date DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   
   wallet_history WalletHistory[]
   payments Payments @relation(fields: [payment_id], references: [id])
@@ -186,14 +191,16 @@ model Trips {
 
 model Payments {
   id                Int     @id @default(autoincrement())
+  client_id         Int
   payment_types_id  Int
   status            StatusEnum @default(PENDING)
   amount            Float
   observation       String?  @db.VarChar(1000)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
   
   payment_types     PaymentTypes @relation(fields: [payment_types_id], references: [id])
+  client            Users        @relation(fields: [client_id], references: [id])
   trips             Trips[]
 
   @@index([payment_types_id])

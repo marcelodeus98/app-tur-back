@@ -10,18 +10,18 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBadRequestResponse, ApiConflictR
 @ApiTags('users')
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @ApiOperation({ summary: 'Create a user' })
   @ApiExtraModels(CreateClientDto, CreateDriverDto)
   @ApiBody({
-  schema: {
-    oneOf: [
-      { $ref: getSchemaPath(CreateClientDto) },
-      { $ref: getSchemaPath(CreateDriverDto) }
-    ]
-  }
-})
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(CreateClientDto) },
+        { $ref: getSchemaPath(CreateDriverDto) }
+      ]
+    }
+  })
   @ApiResponse({ status: 201, description: 'The user has been successfully created.' })
   @ApiBadRequestResponse({ description: 'Bad Request' })
   @ApiConflictResponse({ description: 'User already exists' })
